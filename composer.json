@@ -1,5 +1,5 @@
 {
-    "name": "sim/simbuilder",
+    "name": "upfactor/simbuilder",
     "description": "HTML/CSS template builder",
     "type": "library",
     "require": {
