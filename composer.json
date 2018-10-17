@@ -1,0 +1,24 @@
+{
+    "name": "sim/simbuilder",
+    "description": "HTML/CSS template builder",
+    "type": "library",
+    "require": {
+        "php": ">=5.4"
+    },
+    "require-dev": {
+        "php": ">=5.4"
+    },
+    "license": "LGPL-3.0",
+    "authors": [
+        {
+            "name": "Ivan Miroshin",
+            "email": "ivanmiroshin@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "SimBuilder\\": "src"
+        }
+    },
+    "minimum-stability": "stable"
+}

@@ -1,0 +1,348 @@
+<?php
+require_once __DIR__.'/SimBuilder.php';
+
+$Environment = new \SimBuilder\Environment();
+
+$Launcher = new \SimBuilder\ConsoleLauncher;
+
+$Launcher->bind('--version|-v', function() use ($Environment){
+    \SimBuilder\Dialog::message('SimBuilder Version: '.$Environment::version);
+});
+
+$Launcher->bind('import', function($options) use ($Environment){
+    $bundleName = \SimBuilder\Dialog::request(
+        'Bundle name:',
+        true,
+        function($value) use ($Environment){
+            try {
+                $Environment->checkBundleName($value);
+            } catch (\SimBuilder\Exception $error){
+                $error->getWarning();
+                return null;
+            }
+            return $value;
+        }
+    );
+
+    $bundle = $Environment->import($bundleName, $options['import']);
+
+    \SimBuilder\Dialog::success('Bundle "'.$bundleName.'" is imported. Configuration:');
+    \SimBuilder\Dialog::message($bundle->config->getArray());
+});
+
+$Launcher->bind('create', function() use ($Environment){
+
+    \SimBuilder\Dialog::message('This command will guide you through creating your bundle.');
+
+    $bundleName = \SimBuilder\Dialog::request(
+        'Bundle name:',
+        true,
+        function($value) use ($Environment){
+            try {
+                $Environment->checkBundleName($value);
+            } catch (\SimBuilder\Exception $error){
+                $error->getWarning();
+                return null;
+            }
+            return $value;
+        }
+    );
+    $bundleDir = \SimBuilder\Dialog::request(
+        'Bundle directory:',
+        true,
+        function($value){
+            try {
+                \SimBuilder\Dir::realpath($value);
+            } catch (\SimBuilder\Exception $error){
+                $error->getWarning();
+                return null;
+            }
+            return $value;
+        }
+    );
+    $bundleConfigArray['sources_pages'] = \SimBuilder\Dialog::request(
+        'Source pages directory:',
+        true,
+        function($value){
+            try {
+                \SimBuilder\Dir::realpath($value);
+            } catch (\SimBuilder\Exception $error){
+                $error->getWarning();
+                return null;
+            }
+            return $value;
+        }
+    );
+    $bundleConfigArray['sources_blocks'] = \SimBuilder\Dialog::request(
+        'Source blocks directory:',
+        true,
+        function($value){
+            try {
+                \SimBuilder\Dir::realpath($value);
+            } catch (\SimBuilder\Exception $error){
+                $error->getWarning();
+                return null;
+            }
+            return $value;
+        }
+    );
+    $bundleConfigArray['attachable_files'] = \SimBuilder\Dialog::request(
+        'Attachable files directory:',
+        true,
+        function($value){
+            try {
+                \SimBuilder\Dir::realpath($value);
+            } catch (\SimBuilder\Exception $error){
+                $error->getWarning();
+                return null;
+            }
+            return $value;
+        }
+    );
+
+    $bundle = $Environment->create($bundleName, $bundleDir, $bundleConfigArray);
+
+    \SimBuilder\Dialog::success('Bundle "'.$bundleName.'" is created. Configuration:');
+    \SimBuilder\Dialog::message($bundle->config->getArray());
+});
+
+$Launcher->bind('remove', function($options) use ($Environment){
+    $Environment->remove($options['remove']);
+    \SimBuilder\Dialog::success('Bundle "'.$options['remove'].'" is removed');
+});
+
+$Launcher->bind('list', function() use ($Environment){
+    \SimBuilder\Dialog::message($Environment->getList());
+});
+
+$Launcher->bind('bundle', function($options) use ($Environment){
+    \SimBuilder\Dialog::message($Environment->get($options['bundle'])->config->getArray());
+});
+
+$Launcher->bind('bundle config', function($options) use ($Environment){
+
+    $bundle = $Environment->get($options['bundle']);
+    $bundleName = $options['bundle'];
+    $options = array();
+
+    \SimBuilder\Dialog::message('This command will guide you through editing your bundle config.');
+    \SimBuilder\Dialog::message('Enter the values of the parameters to be changed, or skip [enter]');
+
+    $options['Compression'] = \SimBuilder\Dialog::request(
+        'Compression (yes/no): ',
+        false,
+        function($value) use ($bundle){
+            switch (strtolower($value)){
+                case 'yes':
+                    $bundle->config->set('compression', true)->save();
+                    return true;
+                case 'no':
+                    $bundle->config->set('compression', false)->save();
+                    return false;
+            }
+            return null;
+        }
+    );
+
+    $options['Pages directory'] = \SimBuilder\Dialog::request(
+        'Source pages directory: ',
+        false,
+        function($value) use ($bundle){
+            if (!$value) return null;
+            $bundle->config->set('sources_pages', $value)->save();
+            return $value;
+        }
+    );
+
+    $options['Blocks directory'] = \SimBuilder\Dialog::request(
+        'Source blocks directory: ',
+        false,
+        function($value) use ($bundle){
+            if (!$value) return null;
+            $bundle->config->set('sources_blocks', $value)->save();
+            return $value;
+        }
+    );
+
+    $options['Attachable files directory'] = \SimBuilder\Dialog::request(
+        'Attachable files directory: ',
+        false,
+        function($value) use ($bundle){
+            if (!$value) return null;
+            $bundle->config->set('attachable_files', $value)->save();
+            return $value;
+        }
+    );
+
+    $options['CSS anchor'] = \SimBuilder\Dialog::request(
+        'CSS anchor: ',
+        false,
+        function($value) use ($bundle){
+            if (!$value) return null;
+            $bundle->config->set('anchor_css', $value)->save();
+            return $value;
+        }
+    );
+
+    $options['JavaScript anchor'] = \SimBuilder\Dialog::request(
+        'JavaScript anchor: ',
+        false,
+        function($value) use ($bundle){
+            if (!$value) return null;
+            $bundle->config->set('anchor_js', $value)->save();
+            return $value;
+        }
+    );
+
+    foreach ($options as $name => $value){
+        if (is_null($value)) unset($options[$name]);
+    }
+
+    if (!$options){
+        \SimBuilder\Dialog::message('Bundle configurations are not changed');
+        return;
+    }
+
+    \SimBuilder\Dialog::success('New parameters for the "'.$bundleName.'" Bundle:');
+    \SimBuilder\Dialog::message($options);
+
+});
+
+$Launcher->bind('bundle index', function($options) use ($Environment){
+    $index = $Environment->get($options['bundle'])->getIndex();
+    if (!$index){
+        \SimBuilder\Dialog::error('To obtain information, you must compile the bundle');
+        return;
+    }
+    \SimBuilder\Dialog::message($index);
+});
+
+$Launcher->bind('bundle block', function($options) use ($Environment){
+    $blocks = explode(',', str_replace(' ','', $options['block']));
+    $bundle = $Environment->get($options['bundle']);
+    foreach ($blocks as $blockName) {
+        \SimBuilder\Dialog::message($bundle->getBlockInfo($blockName));
+    }
+});
+
+$Launcher->bind('bundle page', function($options) use ($Environment){
+    $pages = explode(',', str_replace(' ','', $options['page']));
+    $bundle = $Environment->get($options['bundle']);
+    foreach ($pages as $pageName){
+        \SimBuilder\Dialog::message($bundle->getPageInfo($pageName));   
+    }
+});
+
+$Launcher->bind('bundle page (--add|--remove)', function($options) use ($Environment){
+    $bundle = $Environment->get($options['bundle']);
+    $pages = explode(',', str_replace(' ','', $options['page']));
+    if (isset($options['--add'])){
+        $bundle->config->addPages($pages)->save();
+        \SimBuilder\Dialog::success('Pages added to the bundle "'.$options['bundle'].'": '.implode(', ', $pages));
+        return;
+    }
+    if (isset($options['--remove'])){
+        $bundle->config->removePages($pages)->save();
+        \SimBuilder\Dialog::success('Pages removed from the bundle "'.$options['bundle'].'": '.implode(', ', $pages));
+        return;
+    }
+});
+
+$Launcher->bind('bundle ignore (--add|--remove)', function($options) use ($Environment){
+    $bundle = $Environment->get($options['bundle']);
+    $ignoreList = $bundle->config->get('ignore');
+
+    if (isset($options['--add'])){
+        \SimBuilder\Dialog::message('Add files to the ignore list: ','green');
+        $i = 1; $ignoreFiles = array();
+        do{
+            $item = \SimBuilder\Dialog::request($i.': ', false);
+            $ignoreFiles[] = $item;
+            $i++;
+        } while($item);
+        $bundle->config->addIgnore($ignoreFiles)->save();
+    }
+
+    if (isset($options['--remove'])){
+        if (empty($ignoreList)){
+            \SimBuilder\Dialog::message('Ignore list is empty', 'green');
+            return;
+        } else {
+            \SimBuilder\Dialog::message('Ignore list: ', 'green');
+            \SimBuilder\Dialog::message($ignoreList);
+        }
+
+        foreach(\SimBuilder\Dialog::request(
+            'Enter the line number to be deleted (several separated by commas): ',
+            true,
+            function($value){
+                $result = array();
+                foreach (explode(',', str_replace(' ','', $value)) as $k => $value){
+                    if (is_numeric($value)){
+                        $value = (int)$value;
+                        if ($value > 0){
+                            $result[] = $value - 1;
+                        }
+                    }
+                }
+                return $result;
+            }
+        ) as $item){
+            unset($ignoreList[$item]);
+        }
+        $bundle->config->set('ignore', array_values($ignoreList))->save();
+    }
+
+    if ($ignoreList = $bundle->config->get('ignore')){
+        \SimBuilder\Dialog::success('Ignore list changed: ');
+        \SimBuilder\Dialog::message($ignoreList);
+    } else {
+        \SimBuilder\Dialog::message('Ignore list is empty', 'green');
+    }
+});
+
+$Launcher->bind('compile( --all)?( --force)?', function($options) use ($Environment){
+    $compileList = isset($options['--all']) ? array_keys($Environment->getList()) : explode(',', str_replace(' ','', $options['compile']));
+    foreach ($compileList as $item){
+        $item = trim($item);
+        try {
+            $bundle = $Environment->get($item);
+            if (isset($options['--force'])){
+                $bundle->clearCompilation();
+                $bundle->resetIndex();
+            }
+            $bundle->compile();
+            \SimBuilder\Dialog::success('Bundle "' . $item . '" compiled');
+        } catch (\SimBuilder\Exception $error){
+            $error->getWarning();
+        }
+    }
+});
+
+$Launcher->bind('--help|-h', function(){
+    \SimBuilder\Dialog::message("\n".'For quick access, add an alias to the ".bash_profile" file:', 'purple');
+    \SimBuilder\Dialog::message("\n".'   alias sb=\'php '.__DIR__.'/Launcher\'');
+    \SimBuilder\Dialog::message("\n".'Options:', 'purple');
+    \SimBuilder\Dialog::message('   -v, --version                       Display this application version');
+    \SimBuilder\Dialog::message('   -h, --help                          Display this help message');
+    \SimBuilder\Dialog::message("\n".'Bundle collection:', 'purple');
+    \SimBuilder\Dialog::message('   import                              Import an existing bundle into the collection');
+    \SimBuilder\Dialog::message('   create                              Create a new bundle in the collection');
+    \SimBuilder\Dialog::message('   remove                              Remove bundle from collection');
+    \SimBuilder\Dialog::message('   list                                Display this collection bundles');
+    \SimBuilder\Dialog::message('   compile=[NAME]                      Compile bundle [NAME]');
+    \SimBuilder\Dialog::message('   compile=[NAME] --all                Compile all bundles of the collection');
+    \SimBuilder\Dialog::message('   compile=[NAME] --force              Compile and overwrite bundle index and files');
+    \SimBuilder\Dialog::message("\n".'Bundle:', 'purple');
+    \SimBuilder\Dialog::message('   bundle=[NAME]                       Display bundle information');
+    \SimBuilder\Dialog::message('   bundle=[NAME] index                 Display compilation index');
+    \SimBuilder\Dialog::message('   bundle=[NAME] config                Modify bundle configuration');
+    \SimBuilder\Dialog::message('   bundle=[NAME] block=[NAME]          Display block information');
+    \SimBuilder\Dialog::message('   bundle=[NAME] page=[NAME]           Display page information');
+    \SimBuilder\Dialog::message('   bundle=[NAME] page=[NAME] --add     Add page to bundle');
+    \SimBuilder\Dialog::message('   bundle=[NAME] page=[NAME] --remove  Remove page from bundle');
+    \SimBuilder\Dialog::message('   bundle=[NAME] ignore --add          Add file to ignore list');
+    \SimBuilder\Dialog::message('   bundle=[NAME] ignore --remove       Remove file from ignore list');
+});
+
+$Launcher->start();
