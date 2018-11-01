@@ -8,7 +8,7 @@ namespace SimBuilder;
  * @package SimBuilder
  */
 class Environment {
-    const version = '2.0.0';
+    const version = '2.0.1';
 
     /**
      * @var string Путь до дирректориии с конфигурациями сборки
@@ -935,7 +935,7 @@ class Block {
                 //Получение массива файлов
                 $files = File::find($path, false, false, array('filename','path'));
                 //Формирование исключений
-                $exceptions = array(preg_quote($name).'\.(?:tpl|html|css|js|json)', 'template\.(?:tpl|html)', 'style\.css', 'script\.js');
+                $exceptions = array(preg_quote($name).'\.(?:tpl|html|css|js|json)', 'config\.json', 'template\.(?:tpl|html)', 'style\.css', 'script\.js');
                 $exceptions = array_merge($exceptions, $config->get('ignore'));
                 $exceptions = '/('.implode('$)|(',$exceptions).'$)/is';
                 //Фильтрация по исключениям
