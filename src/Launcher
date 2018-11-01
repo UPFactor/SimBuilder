@@ -23,8 +23,21 @@ $Launcher->bind('import', function($options) use ($Environment){
             return $value;
         }
     );
+    $bundleDir = \SimBuilder\Dialog::request(
+        'Bundle directory:',
+        true,
+        function($value){
+            try {
+                \SimBuilder\Dir::realpath($value);
+            } catch (\SimBuilder\Exception $error){
+                $error->getWarning();
+                return null;
+            }
+            return $value;
+        }
+    );
 
-    $bundle = $Environment->import($bundleName, $options['import']);
+    $bundle = $Environment->import($bundleName, $bundleDir);
 
     \SimBuilder\Dialog::success('Bundle "'.$bundleName.'" is imported. Configuration:');
     \SimBuilder\Dialog::message($bundle->config->getArray());
